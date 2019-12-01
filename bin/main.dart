@@ -1,5 +1,10 @@
-import 'package:adventofcode2019/adventofcode2019.dart' as adventofcode2019;
+import 'dart:io';
 
-main(List<String> arguments) {
-  print('Hello world: ${adventofcode2019.calculate()}!');
+import 'package:adventofcode2019/a01.dart' as a01;
+
+main(List<String> arguments) async {
+  final lines = await File('input/01/1').readAsLines();
+
+  print('1/1: ${a01.one(lines)}');
+  print('1/2: ${a01.two(lines)}');
 }
