@@ -26,6 +26,8 @@ import 'package:adventofcode2019/a22.dart';
 import 'package:adventofcode2019/a23.dart';
 import 'package:adventofcode2019/a24.dart';
 
+import "package:test/test.dart";
+
 main(List<String> arguments) async {
   final day = arguments.isEmpty ? '01' : arguments.first;
   final input = arguments.length < 2 ? '1' : arguments[1];
