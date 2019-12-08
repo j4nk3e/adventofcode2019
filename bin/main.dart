@@ -25,11 +25,13 @@ import 'package:adventofcode2019/a21.dart';
 import 'package:adventofcode2019/a22.dart';
 import 'package:adventofcode2019/a23.dart';
 import 'package:adventofcode2019/a24.dart';
-
-import "package:test/test.dart";
+import 'package:sprintf/sprintf.dart';
 
 main(List<String> arguments) async {
-  final day = arguments.isEmpty ? '01' : arguments.first;
+  if (arguments.isEmpty) {
+    return benchmark();
+  }
+  final day = arguments.first;
   final input = arguments.length < 2 ? '1' : arguments[1];
   final file = File('input/$day/$input');
   final lines = await file.exists()
@@ -68,4 +70,47 @@ main(List<String> arguments) async {
   watch.start();
   print('result: ${func(lines)}');
   print('ran ${watch.elapsedMilliseconds}ms');
+}
+
+void benchmark() async {
+  var inputs = <List<String>>[];
+  for (var day in Iterable.generate(24)) {
+    final file = File(sprintf('input/%02i/1', [day + 1]));
+    final lines = await file.exists() ? await file.readAsLines() : [''];
+    inputs.add(lines);
+  }
+
+  final watch = Stopwatch();
+  watch.start();
+  final days = [
+    A01(),
+    A02(),
+    A03(),
+    A04(),
+    A05(),
+    A06(),
+    A07(),
+    A08(),
+    A09(),
+    A10(),
+    A11(),
+    A12(),
+    A13(),
+    A14(),
+    A15(),
+    A16(),
+    A17(),
+    A18(),
+    A19(),
+    A20(),
+    A21(),
+    A22(),
+    A23(),
+    A24(),
+  ];
+  for (var day in Iterable.generate(24)) {
+    days[day].one(inputs[day]);
+    days[day].two(inputs[day]);
+  }
+  print('ran ${watch.elapsedMilliseconds}ms for all files');
 }
