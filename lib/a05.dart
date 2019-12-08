@@ -1,4 +1,5 @@
 import 'package:adventofcode2019/a.dart';
+import 'package:quiver/iterables.dart';
 
 abstract class OpCode {
   final int argLength;
@@ -52,13 +53,13 @@ class Multiply extends OpCode {
 }
 
 class Input extends OpCode {
-  final int input;
+  final int Function() input;
 
   Input(this.input) : super(0);
 
   @override
   int exec(List<int> codes, List<int> args, int ptr) {
-    codes[codes[ptr + 1]] = input;
+    codes[codes[ptr + 1]] = input();
     return ptr + 2;
   }
 }
@@ -66,9 +67,11 @@ class Input extends OpCode {
 class Output extends OpCode {
   Output() : super(1);
 
+  int output;
+
   @override
   int exec(List<int> codes, List<int> args, int ptr) {
-    print('>>> Output: ${args[0]}');
+    output = args[0];
     return ptr + 2;
   }
 }
@@ -110,14 +113,15 @@ class Equals extends OpCode {
 }
 
 class A05 extends A {
-  static int run(List<int> codes, int input) {
+  var out = Output();
+  int run(List<int> codes, int input) {
     var ptr = 0;
     final ops = [
       Nop(),
       Add(),
       Multiply(),
-      Input(input),
-      Output(),
+      Input(() => input),
+      out,
       JumpIfTrue(),
       JumpIfFalse(),
       LessThan(),
@@ -132,7 +136,7 @@ class A05 extends A {
         ptr = ops[opCode].apply(codes, codes[ptr], ptr);
       }
     }
-    return 0;
+    return out.output;
   }
 
   int one(List<String> input) {
