@@ -131,6 +131,7 @@ class Relative extends OpCode {
 class A09 extends A {
   var out = Output();
   int run(Map<int, int> codes, int input) {
+    Relative.base = 0;
     var ptr = 0;
     final ops = {
       1: Add(),
