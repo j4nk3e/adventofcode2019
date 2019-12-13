@@ -2,7 +2,7 @@ name: adventofcode2019
 description: My solutions for the advent of code 2019
 
 environment:
-  sdk: '>=2.6.0 <3.0.0'
+  sdk: ">=2.6.0 <3.0.0"
 
 dependencies:
   sprintf: ^4.0.2
