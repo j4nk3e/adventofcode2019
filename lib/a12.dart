@@ -1,4 +1,3 @@
-import 'dart:math';
 
 import 'package:adventofcode2019/a.dart';
 
@@ -11,16 +10,6 @@ class A12 extends A {
     }
     return energy;
   }
-
-  int ggt(int m, int n) {
-    if (n == 0) {
-      return m;
-    } else {
-      return ggt(n, m % n);
-    }
-  }
-
-  int kgv(int m, int n) => (m * n) ~/ ggt(m, n);
 
   int two(List<String> input) {
     var j = Ju.from(input);
