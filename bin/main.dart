@@ -38,7 +38,7 @@ main(List<String> arguments) async {
       ? await file.readAsLines()
       : await File('input/$day/1').readAsLines();
 
-  final days = <String, A>{
+  final days = <String, dynamic>{
     '01': A01(),
     '02': A02(),
     '03': A03(),
@@ -68,7 +68,7 @@ main(List<String> arguments) async {
 
   final watch = Stopwatch();
   watch.start();
-  print('result: ${func(lines)}');
+  print('result: ${await func(lines)}');
   print('ran ${watch.elapsedMilliseconds}ms');
 }
 
@@ -109,8 +109,14 @@ void benchmark() async {
     A24(),
   ];
   for (var day in Iterable.generate(24)) {
-    days[day].one(inputs[day]);
-    days[day].two(inputs[day]);
+    var d = days[day];
+    if (d is AA) {
+      await d.one(inputs[day]);
+      await d.two(inputs[day]);
+    } else if (d is A) {
+      d.one(inputs[day]);
+      d.two(inputs[day]);
+    }
   }
   print('ran ${watch.elapsedMilliseconds}ms for all files');
 }
