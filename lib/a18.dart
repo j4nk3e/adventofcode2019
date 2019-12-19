@@ -1,22 +1,16 @@
-import 'dart:isolate';
+import 'dart:math';
 
 import 'package:adventofcode2019/a.dart';
 
-var best = 99999;
-
 class Dungeon {
   var points = <Point>[];
-  var doors = <String, Point>{};
-  Point start;
-  int distUntilHere = 0;
 
   Dungeon();
 
-  Dungeon copy(Point pos, int dist) => Dungeon()
-    ..points = points.map((p) => p.withDist(null)).toList()
-    ..doors = Map<String, Point>.from(doors)
-    ..distUntilHere = dist
-    ..start = pos.withDist(0);
+  Dungeon copy() => Dungeon()
+    ..points = points
+        .map((p) => (Point(p.x, p.y, key: p.key)..distances = p.distances))
+        .toList();
 
   factory Dungeon.parse(List<String> input) {
     var d = Dungeon();
@@ -26,124 +20,130 @@ class Dungeon {
         var char = line[x];
         if (char == '.') {
           d.points.add(Point(x, y));
-        } else if (char == '@') {
-          d.start = Point(x, y, dist: 0, key: '@');
-          d.points.add(d.start);
         } else if (char != '#') {
-          var c = char.toLowerCase();
-          var p = Point(x, y, key: c);
-          if (c == char) {
-            d.points.add(p);
-          } else {
-            d.doors[c] = p;
-          }
+          var p = Point(x, y, key: char);
+          d.points.add(p);
         }
       }
     }
     return d;
   }
 
-  int scan(Point current) {
+  void calculate() {
     int i = 0;
-    for (var p in current.adjacent) {
-      var index = points.indexOf(p);
-      if (index >= 0 &&
-          (points[index].dist == null ||
-              points[index].dist > current.dist + 1)) {
-        points[index] = points[index].withDist(current.dist + 1);
-        if (!points[index].isKey) {
-          i++;
+    var interestingPoints = points.where((p) => p.isKey);
+    for (var p in interestingPoints) {
+      p.distances = scan(p);
+      print('${i++}/${interestingPoints.length}');
+    }
+  }
+
+  Map<String, int> scan(Point current) {
+    Map<String, int> distances = {};
+    points.forEach((p) => p.dist = null);
+    var dist = 0;
+    current.dist = 0;
+    var thisRound = <Point>[current];
+    var nextRound = <Point>[];
+    while (thisRound.isNotEmpty) {
+      dist++;
+      for (var q in thisRound.expand((a) => a.adjacent)) {
+        var index = points.indexOf(q);
+        if (index > -1 &&
+            (points[index].dist == null || points[index].dist > dist)) {
+          var z = points[index];
+          z.dist = dist;
+          if (z.isKey) {
+            distances[z.key] = z.dist;
+          } else {
+            nextRound.add(z);
+          }
+        }
+      }
+      thisRound = nextRound;
+      nextRound = <Point>[];
+    }
+    return distances;
+  }
+
+  int solve(final String q, final int dist) {
+    if (points.where((p) => p.key.toLowerCase() == p.key).length == 1) {
+      return dist;
+    }
+    var qPoint = points.firstWhere((p) => p.key == q);
+
+    for (var r in points) {
+      r.distances = Map.from(r.distances);
+      for (var s in qPoint.distances.entries) {
+        if (r.distances.containsKey(q)) {
+          if (r.distances.containsKey(s.key)) {
+            r.distances[s.key] =
+                min(r.distances[s.key], r.distances[q] + s.value);
+          } else {
+            r.distances[s.key] = r.distances[q] + s.value;
+          }
         }
       }
     }
-    return i;
-  }
 
-  Future<int> solve([String id]) async {
-    points.removeWhere((p) => p == start);
-    if (start.isKey) {
-      if (doors.containsKey(start.key)) {
-        points.add(doors.remove(start.key).withoutKey());
-      }
-      points.add(start.withoutKey());
-    }
-    if (points.every((p) => !p.isKey)) {
-      if (best > distUntilHere) {
-        best = distUntilHere;
-        print('$id >>>> $distUntilHere');
-      }
-      return distUntilHere;
-    }
-
-    var dist = 0;
-    var i = 1;
-    while (i > 0) {
-      i = 0;
-      for (var p in points.where((q) => q.dist == dist && !q.isKey)) {
-        i += scan(p);
-      }
-      dist++;
-    }
-
-    var check = points.where((p) => p.dist != null && p.isKey).toList();
-    check.sort((k, j) => k.dist.compareTo(j.dist));
-
-    // if (keypair.length > 30) {
-    //   var runners = <Future>[];
-    //   var receivePort = ReceivePort();
-    //   for (var k in check) {
-    //     var kp = keypair[k.key];
-    //     Dungeon d = copy(kp.key, k.value.key.dist + distUntilHere);
-    //     var message = Message(receivePort.sendPort, d);
-    //     runners.add(Isolate.spawn(solveDungeon, message));
-    //   }
-
-    //   await runners.forEach((r) async => await r);
-    //   var dist = await receivePort
-    //       .take(runners.length)
-    //       .map((i) => i as int)
-    //       .reduce((a, b) => min(a, b));
-
-    //   if (dist == -1) {
-    //     var keys = keypair.keys.toList();
-    //     keys.sort();
-    //     throw Exception('No solution with $keys');
-    //   }
-    //   return dist;
-    // } else {
-
-    var sol;
-    for (var k in check) {
-      Dungeon d = copy(k, k.dist + distUntilHere);
-      var s = await d.solve(
-          id == null ? '${k.key}[${k.dist}]' : '$id, ${k.key}[${k.dist}]');
-
-      if (sol == null || s < sol) {
-        sol = s;
+    var door =
+        points.firstWhere((p) => p.key == q.toUpperCase(), orElse: () => null);
+    if (door != null) {
+      points.remove(door);
+      for (var r in points) {
+        var d = q.toUpperCase();
+        for (var s in door.distances.entries) {
+          if (r.distances.containsKey(d)) {
+            if (r.distances.containsKey(s.key)) {
+              r.distances[s.key] =
+                  min(r.distances[s.key], r.distances[d] + s.value);
+            } else {
+              r.distances[s.key] = r.distances[d] + s.value;
+            }
+          }
+        }
       }
     }
+    var nextKeys = qPoint.distances;
+    points.remove(qPoint);
 
-    return sol;
-    // }
+    var order = points
+        .where(
+            (e) => e.key.toLowerCase() == e.key && nextKeys.containsKey(e.key))
+        .toList();
+    order.sort((a, b) => nextKeys[a.key].compareTo(nextKeys[b.key]));
+    assert(order.isNotEmpty);
+
+    var shortest;
+    for (var route in order) {
+      var d = nextKeys[route.key] + dist;
+      if (shortest != null && shortest < d) {
+        break;
+      }
+      var sub = copy();
+      var solution = sub.solve(route.key, d);
+      if (shortest == null || shortest > solution) {
+        shortest = solution;
+        if (globalBest > shortest) {
+          globalBest = shortest;
+          print(shortest);
+        }
+      }
+    }
+    assert(shortest != null);
+    return shortest;
   }
 }
 
-class Message {
-  final SendPort send;
-  final Dungeon dungeon;
-
-  Message(this.send, this.dungeon);
-}
-
-void solveDungeon(Message m) async {
-  var sol = await m.dungeon.solve();
-  m.send.send(sol);
-}
+var globalBest = 9999;
 
 class A18 extends AA {
   Future<int> one(List<String> input) async {
     var d = Dungeon.parse(input);
-    return await d.solve();
+    d.calculate();
+    print('finished calculating');
+    d.points = d.points.where((p) => p.distances.isNotEmpty).toList();
+    return d.solve('@', 0);
   }
 
   Future<int> two(List<String> input) async {
@@ -154,13 +154,11 @@ class A18 extends AA {
 class Point {
   final int x;
   final int y;
-  final dist;
   final String key;
+  int dist;
+  Map<String, int> distances = {};
 
-  Point(this.x, this.y, {this.dist, this.key});
-
-  Point withDist(int d) => Point(x, y, dist: d, key: key);
-  Point withoutKey() => Point(x, y, dist: dist, key: null);
+  Point(this.x, this.y, {this.key});
 
   operator ==(dynamic other) => other is Point && other.x == x && other.y == y;
 
@@ -178,5 +176,5 @@ class Point {
   operator +(Point o) => Point(o.x + x, o.y + y);
 
   @override
-  String toString() => '$x|$y[$dist]($key)';
+  String toString() => '$x|$y($key/${distances.length})';
 }
