@@ -171,8 +171,25 @@ class IntCode {
     }
   }
 
+  List<int> runAll() {
+    var output = <int>[];
+    while (true) {
+      var o = run();
+      if (o == null) {
+        return output;
+      }
+      output.add(o);
+    }
+  }
+
+  String runString() => String.fromCharCodes(runAll());
+
   addInput(List<int> input) {
     _input.addAll(input);
+  }
+
+  addLine(String line) {
+    _input.addAll('$line\n'.codeUnits);
   }
 
   void clearInput() {
