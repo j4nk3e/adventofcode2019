@@ -19,7 +19,6 @@ void runIntCode(Message message) async {
   message.backChannel.send(MapEntry(message.port, receivePort.sendPort));
   var intCode = IntCode(message.code, input: () {
     if (buf.isEmpty) {
-      message.sendPort.send(Packet(message.port, waiting: true));
       return -1;
     }
     return buf.removeAt(0);
@@ -36,7 +35,7 @@ void runIntCode(Message message) async {
     }
     var x = intCode.run(message.port);
     var y = intCode.run(message.port);
-    message.sendPort.send(Packet(port, x: x, y: y));
+    message.sendPort.send(Packet(port, x, y));
   }
 }
 
@@ -44,9 +43,8 @@ class Packet {
   final int port;
   final int x;
   final int y;
-  bool waiting;
 
-  Packet(this.port, {this.x, this.y, this.waiting = false});
+  Packet(this.port, this.x, this.y);
 
   @override
   String toString() => 'Packet($x, $y) => $port';
@@ -90,9 +88,7 @@ class A23 extends AA {
     var network = <int, SendPort>{};
     var backChannel = ReceivePort();
     var receivePort = ReceivePort();
-    var waiting = <bool>[];
     for (var i in Iterable.generate(50)) {
-      waiting.add(false);
       var message =
           Message(input, receivePort.sendPort, backChannel.sendPort, i);
       runners.add(Isolate.spawn(runIntCode, message));
@@ -106,36 +102,30 @@ class A23 extends AA {
     var nat = StreamController<Packet>();
     var sentLast;
     var sendNext;
-    var idleCount = 0;
+    var timeout = () {
+      if (sentLast != null && sendNext != null && sentLast.y == sendNext.y) {
+        nat.add(sendNext);
+      } else if (sendNext != null) {
+        print('RESET $sendNext');
+        sentLast = sendNext;
+        sendNext = null;
+        network[0].send(sentLast);
+      }
+    };
+    var natTimeout = Duration(milliseconds: 100);
+    var t = Timer(natTimeout, timeout);
     var l = receivePort.listen((d) async {
-      if (d.waiting) {
-        idleCount++;
-        waiting[d.port] = true;
-        if (waiting.every((t) => t)) {
-          if (sentLast != null &&
-              sendNext != null &&
-              sentLast.y == sendNext.y) {
-            nat.add(sendNext);
-          } else if (sendNext != null) {
-            print('RESET $sendNext');
-            waiting = Iterable.generate(waiting.length, (i) => false).toList();
-            sentLast = sendNext;
-            sendNext = null;
-            network[0].send(sentLast);
-          }
-        }
-      } else if (d.port == 255) {
+      t.cancel();
+      if (d.port == 255) {
         print('NAT $d');
-        sendNext = Packet(0, x: d.x, y: d.y);
+        sendNext = Packet(0, d.x, d.y);
       } else {
-        waiting[d.port] = false;
-        print('MESSAGE $d');
         network[d.port].send(d);
       }
+      t = Timer(natTimeout, timeout);
     });
     var p = await nat.stream.first;
     await l.cancel();
-    print('$idleCount idle messages');
     return p.y;
   }
 }
