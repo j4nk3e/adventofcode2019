@@ -134,11 +134,11 @@ class IntCode {
   Map<int, OpCode> ops;
   Map<int, int> codes;
 
-  IntCode(List<String> input) {
+  IntCode(List<String> code, {int Function() input}) {
     ops = {
       1: Add(),
       2: Multiply(),
-      3: Input(() => _input.removeAt(0)),
+      3: Input(input ?? () => _input.removeAt(0)),
       4: out,
       5: JumpIfTrue(),
       6: JumpIfFalse(),
@@ -146,7 +146,7 @@ class IntCode {
       8: Equals(),
       9: relative,
     };
-    codes = HashMap<int, int>.from(readCodes(input).asMap());
+    codes = HashMap<int, int>.from(readCodes(code).asMap());
   }
 
   static List<int> readCodes(List<String> input) =>
@@ -169,6 +169,21 @@ class IntCode {
         return out.output;
       }
     }
+  }
+
+  Future<int> microtask() async {
+    out.output = null;
+    final opCode = (codes[ptr]) % 100;
+    if (opCode == 99) {
+      return null;
+    } else {
+      final current = ops[opCode];
+      ptr = current.apply(codes, codes[ptr], ptr, relative.base);
+      if (current is Input) {
+        await Future.delayed(Duration(milliseconds: 16));
+      }
+    }
+    return out.output;
   }
 
   List<int> runAll() {
