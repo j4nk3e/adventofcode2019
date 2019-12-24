@@ -1,48 +1,58 @@
+import 'dart:math';
+
 import 'package:adventofcode2019/a.dart';
 
 class A16 extends A {
   int one(List<String> input) {
-    var numbers = input.first.split('').map((i) => int.parse(i)).toList();
-    // var numbers = '80871224585914546619083218645595'
-    //     .split('')
-    //     .map((i) => int.parse(i))
-    //     .toList();
-    // var numbers = [1, 2, 3, 4, 5, 6, 7, 8];
-    var out = List<int>.from(numbers);
+    var n = input.first.split('').map((i) => int.parse(i)).toList();
+    var numbers = n;
     for (var k = 0; k < 100; k++) {
-      print('$k $numbers');
-      for (int i = 0; i < out.length; i++) {
-        final iter = gen(i).iterator;
-        iter.moveNext();
+      print(k);
+      var prev = 0;
+      for (int i = 0; i < numbers.length / 2; i++) {
+        var step = i + 1;
+        var mult = 1;
         var sum = 0;
-        for (var j in numbers) {
-          iter.moveNext();
-          sum += j * iter.current;
+        for (var n = i; n < numbers.length; n += step * 2) {
+          sum += numbers.skip(n).take(step).reduce((a, b) => a + b) * mult;
+          mult *= -1;
         }
-        out[i] = trunc(sum);
+        numbers[i] = trunc(sum);
       }
-      numbers = out;
+      for (int i = numbers.length - 1; i >= numbers.length ~/ 2; i--) {
+        prev = (prev + numbers[i]) % 10;
+        numbers[i] = prev;
+      }
     }
-    print(numbers);
     return int.parse(numbers.take(8).map((i) => i.toString()).join());
   }
-
-  Iterable<int> gen(int round) sync* {
-    List<int> p = pattern(round);
-    while (true) {
-      for (var i in p) {
-        yield i;
-      }
-    }
-  }
-
-  List<int> pattern(int round) => [0, 1, 0, -1]
-      .expand((i) => Iterable.generate(round + 1, (_) => i))
-      .toList();
 
   int trunc(int i) => i.abs() % 10;
 
   int two(List<String> input) {
-    return 0;
+    var n = input.first.split('').map((i) => int.parse(i)).toList();
+    var pos = int.parse(n.take(7).map((i) => i.toString()).join(''));
+    var numbers = Iterable.generate(10000, (_) => n).expand((i) => i).toList();
+    for (var k = 0; k < 100; k++) {
+      print(k);
+      var prev = 0;
+      for (int i = pos; i < numbers.length / 2; i++) {
+        var step = i + 1;
+        var mult = 1;
+        var sum = 0;
+        for (var n = i; n < numbers.length; n += step * 2) {
+          sum += numbers.skip(n).take(step).reduce((a, b) => a + b) * mult;
+          mult *= -1;
+        }
+        numbers[i] = trunc(sum);
+      }
+      for (int i = numbers.length - 1;
+          i >= max(numbers.length ~/ 2, pos);
+          i--) {
+        prev = (prev + numbers[i]) % 10;
+        numbers[i] = prev;
+      }
+    }
+    return int.parse(numbers.skip(pos).take(8).map((i) => i.toString()).join());
   }
 }
