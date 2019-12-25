@@ -8,7 +8,7 @@ import 'intcode.dart';
 
 class A13 extends A {
   int one(List<String> input) {
-    final codes = IntCode(input);
+    final codes = IntCode.from(input);
     var scr = <int>[];
     while (true) {
       var o = codes.run();
@@ -21,7 +21,7 @@ class A13 extends A {
   }
 
   int two(List<String> input) {
-    final codes = IntCode(input);
+    final codes = IntCode.from(input);
     var s = <int>[];
     var paddle = 0;
     var ball = 0;

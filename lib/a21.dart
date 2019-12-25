@@ -3,7 +3,7 @@ import 'package:adventofcode2019/intcode.dart';
 
 class A21 extends A {
   int one(List<String> input) {
-    var code = IntCode(input);
+    var code = IntCode.from(input);
     // always jump if not A B or C
     code.addLine('NOT A J');
     code.addLine('NOT B T');
@@ -22,7 +22,7 @@ class A21 extends A {
   }
 
   int two(List<String> input) {
-    var code = IntCode(input);
+    var code = IntCode.from(input);
     // always jump if not A B or C
     code.addLine('NOT A J');
     code.addLine('NOT B T');

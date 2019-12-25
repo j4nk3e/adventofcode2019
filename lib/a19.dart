@@ -44,7 +44,7 @@ class A19 extends A {
   }
 
   bool check(int x, int y) {
-    var codes = IntCode(input);
+    var codes = IntCode.from(input);
     codes.addInput([x, y]);
     var o = codes.run();
     if (o != 0) {

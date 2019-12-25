@@ -25,6 +25,7 @@ import 'package:adventofcode2019/a21.dart';
 import 'package:adventofcode2019/a22.dart';
 import 'package:adventofcode2019/a23.dart';
 import 'package:adventofcode2019/a24.dart';
+import 'package:adventofcode2019/a25.dart';
 import 'package:sprintf/sprintf.dart';
 
 main(List<String> arguments) async {
@@ -63,6 +64,7 @@ main(List<String> arguments) async {
     '22': A22(),
     '23': A23(),
     '24': A24(),
+    '25': A25(),
   };
   final func = input == '1' ? days[day].one : days[day].two;
 
@@ -107,6 +109,7 @@ void benchmark() async {
     A22(),
     A23(),
     A24(),
+    A25(),
   ];
   for (var day in Iterable.generate(24)) {
     var d = days[day];

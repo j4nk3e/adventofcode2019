@@ -1,6 +1,5 @@
 import 'package:adventofcode2019/a.dart';
 import 'package:adventofcode2019/intcode.dart';
-import 'dart:collection';
 import 'dart:math';
 
 import 'package:quiver/iterables.dart';
@@ -11,7 +10,7 @@ class A17 extends A {
   Point bot;
 
   int one(List<String> input) {
-    final codes = IntCode(input);
+    final codes = IntCode.from(input);
     List<String> output = [];
     while (true) {
       var o = codes.run();
@@ -88,7 +87,7 @@ class A17 extends A {
 
   int two(List<String> input) {
     one([input[0].replaceRange(0, 1, '1')]);
-    final codes = IntCode(input);
+    final codes = IntCode.from(input);
     var i = [
       'A,B,C',
       'R,11,L,8,L,4',

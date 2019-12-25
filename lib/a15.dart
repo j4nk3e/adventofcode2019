@@ -4,7 +4,7 @@ import 'package:quiver/iterables.dart';
 
 class A15 extends A {
   int one(List<String> input) {
-    var intcode = IntCode(input);
+    var intcode = IntCode.from(input);
     Ship ship = Ship();
     ship.tiles.add(Tile(0, 0, type: 'X'));
     for (int i = 0; true; i++) {
@@ -27,7 +27,7 @@ class A15 extends A {
   }
 
   int two(List<String> input) {
-    var intcode = IntCode(input);
+    var intcode = IntCode.from(input);
     Ship ship = Ship();
     ship.tiles.add(Tile(0, 0, type: 'X'));
     for (int i = 0; true; i++) {

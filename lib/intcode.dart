@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:math';
 
 abstract class OpCode {
@@ -127,18 +128,18 @@ class Relative extends OpCode {
 }
 
 class IntCode {
-  final out = Output();
-  final relative = Relative();
+  Output out;
+  Relative relative;
   final _input = [];
   var ptr = 0;
   Map<int, OpCode> ops;
-  Map<int, int> codes;
+  final Map<int, int> codes;
 
-  IntCode(List<String> code, {int Function() input}) {
+  IntCode(this.codes, this.out, this.relative, {int Function() inputFunction}) {
     ops = {
       1: Add(),
       2: Multiply(),
-      3: Input(input ?? () => _input.removeAt(0)),
+      3: Input(inputFunction ?? () => _input.removeAt(0)),
       4: out,
       5: JumpIfTrue(),
       6: JumpIfFalse(),
@@ -146,8 +147,27 @@ class IntCode {
       8: Equals(),
       9: relative,
     };
-    codes = HashMap<int, int>.from(readCodes(code).asMap());
   }
+
+  factory IntCode.from(List<String> code, {int Function() inputFunction}) =>
+      IntCode(
+        HashMap<int, int>.from(readCodes(code).asMap()),
+        Output(),
+        Relative(),
+        inputFunction: inputFunction,
+      );
+
+  factory IntCode.load(String json) {
+    var data = jsonDecode(json);
+    return IntCode(
+      HashMap<int, int>.from((data['data'] as List).asMap()),
+      Output(),
+      Relative()..base = data['rel'],
+    )..ptr = data['ptr'];
+  }
+
+  get memDump =>
+      Iterable.generate(codes.keys.last, (i) => codes[i] ?? 0).toList();
 
   static List<int> readCodes(List<String> input) =>
       input.join('').split(',').map(int.parse).toList();
@@ -197,6 +217,43 @@ class IntCode {
     }
   }
 
+  OpCode instruction;
+
+  String runUntilIO([String input]) {
+    var output = <int>[];
+    while (true) {
+      if (input != null) {
+        _input.addAll('$input\n'.codeUnits);
+      }
+      while (true) {
+        final opCode = (codes[ptr]) % 100;
+        if (opCode == 99) {
+          instruction = null;
+          break;
+        } else {
+          instruction = ops[opCode];
+          if (instruction is Input && _input.isEmpty) {
+            break;
+          }
+          ptr = instruction.apply(codes, codes[ptr], ptr, relative.base);
+        }
+        if (out.output != null) {
+          output.add(out.output);
+          var char = String.fromCharCode(out.output);
+          out.output = null;
+          if (char == '\n') {
+            break;
+          }
+        }
+      }
+      return String.fromCharCodes(output);
+    }
+  }
+
+  IntCode copy() => IntCode(Map.from(codes), Output()..output = out.output,
+      Relative()..base = relative.base)
+    ..ptr = ptr;
+
   String runString() => String.fromCharCodes(runAll());
 
   addInput(List<int> input) {
@@ -215,4 +272,7 @@ class IntCode {
     clearInput();
     ptr = 0;
   }
+
+  String toJson() =>
+      jsonEncode({'ptr': ptr, 'rel': relative.base, 'data': memDump});
 }

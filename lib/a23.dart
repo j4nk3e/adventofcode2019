@@ -17,7 +17,7 @@ void runIntCode(Message message) async {
   var buf = <int>[message.port];
   var receivePort = ReceivePort();
   message.backChannel.send(MapEntry(message.port, receivePort.sendPort));
-  var intCode = IntCode(message.code, input: () {
+  var intCode = IntCode.from(message.code, inputFunction: () {
     if (buf.isEmpty) {
       return -1;
     }

@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:math';
 
 import 'package:adventofcode2019/intcode.dart';
@@ -7,7 +6,7 @@ import 'package:adventofcode2019/a.dart';
 
 class A11 extends A {
   int one(List<String> input) {
-    final codes = IntCode(input);
+    final codes = IntCode.from(input);
     var panel = [Panel(0, 0)];
     var robot = Robot();
     while (true) {
@@ -34,7 +33,7 @@ class A11 extends A {
   }
 
   int two(List<String> input) {
-    final codes = IntCode(input);
+    final codes = IntCode.from(input);
     var panel = [Panel(0, 0)..color = 1];
     var robot = Robot();
     while (true) {
