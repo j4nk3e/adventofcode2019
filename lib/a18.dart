@@ -2,43 +2,48 @@ import 'dart:math';
 
 import 'package:adventofcode2019/a.dart';
 
+var globalBest = 9999;
+
 class Dungeon {
-  var points = <Point>[];
+  Map<String, Map<String, int>> points = {};
 
   Dungeon();
 
   Dungeon copy() => Dungeon()
-    ..points = points
-        .map((p) => (Point(p.x, p.y, key: p.key)..distances = p.distances))
-        .toList();
+    ..points = Map.fromEntries(
+        points.entries.map((e) => MapEntry(e.key, Map.from(e.value))));
 
-  factory Dungeon.parse(List<String> input) {
-    var d = Dungeon();
+  static List<Point> parse(List<String> input) {
+    var points = <Point>[];
+    int start = 1;
     for (var y = 0; y < input.length; y++) {
       var line = input[y];
       for (var x = 0; x < line.length; x++) {
         var char = line[x];
         if (char == '.') {
-          d.points.add(Point(x, y));
+          points.add(Point(x, y));
+        } else if (char == '@') {
+          var p = Point(x, y, key: '${start++}');
+          points.add(p);
         } else if (char != '#') {
           var p = Point(x, y, key: char);
-          d.points.add(p);
+          points.add(p);
         }
       }
     }
-    return d;
+    return points;
   }
 
-  void calculate() {
+  static void calculate(List<Point> points) {
     int i = 0;
     var interestingPoints = points.where((p) => p.isKey);
     for (var p in interestingPoints) {
-      p.distances = scan(p);
-      print('${i++}/${interestingPoints.length}');
+      p.distances = scan(points, p);
+      print('${i++}/${interestingPoints.length}: $p');
     }
   }
 
-  Map<String, int> scan(Point current) {
+  static Map<String, int> scan(List<Point> points, Point current) {
     Map<String, int> distances = {};
     points.forEach((p) => p.dist = null);
     var dist = 0;
@@ -66,88 +71,123 @@ class Dungeon {
     return distances;
   }
 
-  int solve(final String q, final int dist) {
-    if (points.where((p) => p.key.toLowerCase() == p.key).length == 1) {
-      return dist;
-    }
-    var qPoint = points.firstWhere((p) => p.key == q);
-
-    for (var r in points) {
-      r.distances = Map.from(r.distances);
-      for (var s in qPoint.distances.entries) {
-        if (r.distances.containsKey(q)) {
-          if (r.distances.containsKey(s.key)) {
-            r.distances[s.key] =
-                min(r.distances[s.key], r.distances[q] + s.value);
+  void removePoint(String q) {
+    var p = points.remove(q);
+    for (var r in p.entries) {
+      var k = r.key;
+      var d = r.value;
+      points[k].remove(q);
+      for (var n in p.entries) {
+        if (n.key != k) {
+          if (points[k].containsKey(n.key)) {
+            points[k][n.key] = min(points[k][n.key], n.value + d);
           } else {
-            r.distances[s.key] = r.distances[q] + s.value;
+            points[k][n.key] = n.value + d;
           }
         }
       }
     }
-
-    var door =
-        points.firstWhere((p) => p.key == q.toUpperCase(), orElse: () => null);
-    if (door != null) {
-      points.remove(door);
-      for (var r in points) {
-        var d = q.toUpperCase();
-        for (var s in door.distances.entries) {
-          if (r.distances.containsKey(d)) {
-            if (r.distances.containsKey(s.key)) {
-              r.distances[s.key] =
-                  min(r.distances[s.key], r.distances[d] + s.value);
-            } else {
-              r.distances[s.key] = r.distances[d] + s.value;
-            }
-          }
-        }
-      }
+    if (q.toUpperCase() != q) {
+      takeKey(q);
     }
-    var nextKeys = qPoint.distances;
-    points.remove(qPoint);
+  }
 
-    var order = points
+  void takeKey(String q) {
+    if (q.toUpperCase() == q || !points.containsKey(q.toUpperCase())) {
+      return;
+    }
+    removePoint(q.toUpperCase());
+  }
+
+  Future<int> solve(List<String> positions, int dist) async {
+    positions.removeWhere((p) => points[p].isEmpty);
+    positions.forEach(takeKey);
+    var replace = positions
+        .where((p) =>
+            points[p].length == 1 &&
+            points[p].keys.first.toLowerCase() == points[p].keys.first)
+        .toList();
+    while (replace.isNotEmpty) {
+      dist +=
+          replace.map((p) => points[p].values.first).reduce((a, b) => a + b);
+      for (var r in replace) {
+        positions.remove(r);
+        var newPos = points[r].keys.first;
+        positions.add(newPos);
+        takeKey(newPos);
+        removePoint(r);
+      }
+      positions.removeWhere((p) => points[p].isEmpty);
+      if (positions.isEmpty) {
+        return dist;
+      }
+      replace = positions
+          .where((p) =>
+              points[p].length == 1 &&
+              points[p].keys.first.toLowerCase() == points[p].keys.first)
+          .toList();
+    }
+
+    var nextKeys = <String, int>{};
+    for (var q in positions) {
+      nextKeys.addAll(points[q]);
+    }
+
+    var order = nextKeys.entries
         .where(
             (e) => e.key.toLowerCase() == e.key && nextKeys.containsKey(e.key))
         .toList();
     order.sort((a, b) => nextKeys[a.key].compareTo(nextKeys[b.key]));
-    assert(order.isNotEmpty);
 
     var shortest;
     for (var route in order) {
-      var d = nextKeys[route.key] + dist;
+      var origin =
+          positions.firstWhere((p) => points[p].keys.contains(route.key));
+      var d = route.value + dist;
       if (shortest != null && shortest < d) {
         break;
       }
-      var sub = copy();
-      var solution = sub.solve(route.key, d);
-      if (shortest == null || shortest > solution) {
+      var c = copy();
+      var np = List<String>.from(positions);
+      c.removePoint(origin);
+      np.remove(origin);
+      np.add(route.key);
+      int solution = await c.solve(np, d);
+      if (solution != null && (shortest == null || shortest > solution)) {
         shortest = solution;
         if (globalBest > shortest) {
           globalBest = shortest;
-          print(shortest);
+          print('new shortest: $shortest');
         }
       }
     }
-    assert(shortest != null);
     return shortest;
   }
 }
 
-var globalBest = 9999;
-
 class A18 extends AA {
   Future<int> one(List<String> input) async {
-    var d = Dungeon.parse(input);
-    d.calculate();
+    var points = Dungeon.parse(input);
+    Dungeon.calculate(points);
     print('finished calculating');
-    d.points = d.points.where((p) => p.distances.isNotEmpty).toList();
-    return d.solve('@', 0);
+    var d = Dungeon();
+    d.points = Map.fromEntries(points
+        .where((p) => p.distances.isNotEmpty)
+        .toList()
+        .map((p) => MapEntry(p.key, p.distances)));
+    return await d.solve(['1'], 0);
   }
 
   Future<int> two(List<String> input) async {
-    return 0;
+    var points = Dungeon.parse(input);
+    Dungeon.calculate(points);
+    print('finished calculating');
+    var d = Dungeon();
+    d.points = Map.fromEntries(points
+        .where((p) => p.distances.isNotEmpty)
+        .toList()
+        .map((p) => MapEntry(p.key, p.distances)));
+    return await d.solve(['1', '2', '3', '4'], 0);
   }
 }
 
@@ -176,5 +216,5 @@ class Point {
   operator +(Point o) => Point(o.x + x, o.y + y);
 
   @override
-  String toString() => '$x|$y($key/${distances.length})';
+  String toString() => '$key${distances}';
 }
