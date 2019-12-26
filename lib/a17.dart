@@ -4,12 +4,12 @@ import 'dart:math';
 
 import 'package:quiver/iterables.dart';
 
-class A17 extends A {
+class A17 extends AA {
   var hBars = <Bar>[];
   var vBars = <Bar>[];
   Point bot;
 
-  int one(List<String> input) {
+  Future<int> one(List<String> input) async {
     final codes = IntCode.from(input);
     List<String> output = [];
     while (true) {
@@ -85,24 +85,20 @@ class A17 extends A {
     return sum;
   }
 
-  int two(List<String> input) {
-    one([input[0].replaceRange(0, 1, '1')]);
+  Future<int> two(List<String> input) async {
     final codes = IntCode.from(input);
     var i = [
-      'A,B,C',
-      'R,11,L,8,L,4',
-      'L,4,L,8',
-      'R,6',
-      'n\n',
+      'A,B,A,B,C,A,C,A,C,B',
+      'R,12,L,8,L,4,L,4',
+      'L,8,R,6,L,6',
+      'L,8,L,4,R,12,L,6,L,4',
+      'y',
     ];
-    while (true) {
-      codes.addInput(i?.join('\n')?.codeUnits);
-      int o = codes.run();
-      if (o != null) {
-        print(o);
-      }
-      i = null;
+    for (var line in i) {
+      codes.addLine(line);
     }
+    print(codes.runString());
+    return codes.out.output;
   }
 }
 

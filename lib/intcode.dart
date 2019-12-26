@@ -254,7 +254,12 @@ class IntCode {
       Relative()..base = relative.base)
     ..ptr = ptr;
 
-  String runString() => String.fromCharCodes(runAll());
+  String runString() {
+    var all = runAll();
+    var str = String.fromCharCodes(all.where(((i) => i < 256)));
+    var rest = all.where(((i) => i >= 256)).toString();
+    return '$str\n$rest';
+  }
 
   addInput(List<int> input) {
     _input.addAll(input);
